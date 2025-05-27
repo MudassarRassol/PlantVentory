@@ -1,0 +1,92 @@
+  generator client {
+    provider = "prisma-client-js"
+  }
+
+  // increase limit of upload file size
+  // https://www.prisma.io/docs/guides/database/connection-management/postgresql#increase-the-maximum-file-size
+
+
+
+  datasource db {
+
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
+
+  
+
+  model Plant {
+    id          String        @id @default(cuid())
+    name        String
+    description String?
+    category    String
+    stock       Int
+    price       Float
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+    userId      String
+    user        User          @relation(fields: [userId], references: [id])
+    imageUrl    String?
+    carts       Cart[]
+    orderDetails OrderDetail[]
+  }
+
+  model User {
+    id        String    @id @default(cuid())
+    email     String    @unique
+    password  String?
+    role      String    @default("user")
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    plants    Plant[]
+    carts     Cart[]
+    orders    Order[]
+    addresses Address[]
+  }
+
+  model Cart {
+    id      String @id @default(cuid())
+    userId  String
+    user    User   @relation(fields: [userId], references: [id])
+    plantId String
+    plant   Plant  @relation(fields: [plantId], references: [id])
+  }
+
+  model Order {
+    id         String        @id @default(cuid())
+    userId     String
+    user       User          @relation(fields: [userId], references: [id])
+    totalPrice Float
+    addressId  String?
+    address    Address?      @relation(fields: [addressId], references: [id])
+    createdAt  DateTime      @default(now())
+    updatedAt  DateTime      @updatedAt
+    status     String        @default("pending")
+    orderDetails OrderDetail[]
+  }
+
+  model OrderDetail {
+    id        String   @id @default(cuid())
+    orderId   String
+    order     Order    @relation(fields: [orderId], references: [id])
+    plantId   String
+    plant     Plant    @relation(fields: [plantId], references: [id])
+    quantity  Int
+    price     Float
+
+    createdAt DateTime @default(now())
+  }
+
+  model Address {
+    id        String   @id @default(cuid())
+    userId    String
+    user      User     @relation(fields: [userId], references: [id])
+    street    String
+    city      String
+    state     String
+    zipCode   String
+    country   String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    orders    Order[]
+  }
