@@ -21,10 +21,12 @@ const Inventerytabel = () => {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const role = localStorage.getItem('role')
+  const [role,setrole] = useState();
 
   useEffect(() => {
+
+      const rol = localStorage.getItem('role')
+      setrole(rol);
     const fetchPlants = async () => {
       try {
         setLoading(true);
