@@ -7,7 +7,7 @@ import { SignUp, SignIn } from '@/app/actions/user.action';
 import { Toaster, toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
-export default function AuthPage(props) {
+export default function AuthPage() {
   const router = useRouter();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
