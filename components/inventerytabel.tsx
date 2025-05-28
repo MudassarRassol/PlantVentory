@@ -21,7 +21,7 @@ const Inventerytabel = () => {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [role,setrole] = useState();
+   const [role, setrole] = useState<string | null>(null);
 
   useEffect(() => {
 
