@@ -18,13 +18,8 @@ import { UploadImage } from "@/lib/uploadimg";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
-interface EditPlantPageProps {
-  params: {
-    id: string;
-  };
-}
 
-const EditPlantPage = ({ params }: EditPlantPageProps) => {
+const EditPlantPage = ({params} : any) => {
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
