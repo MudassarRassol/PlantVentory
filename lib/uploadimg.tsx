@@ -1,5 +1,7 @@
 import cloudinary from "@/lib/cloudniary";
 
+
+
 export const UploadImage = async (file: File, folder: string) => {
   const buffer = await file.arrayBuffer();
   const bytes = Buffer.from(buffer);

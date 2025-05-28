@@ -39,6 +39,7 @@ export default function AuthPage(props) {
       const response = await SignIn(email, password);
       if (response?.success) {
         localStorage.setItem('login', 'true');
+        localStorage.setItem('role' ,  'user' )
         toast.success("Logged in successfully");
         window.location.href = '/'; // Redirect to home page
       } else {

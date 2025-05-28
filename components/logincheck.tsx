@@ -29,6 +29,7 @@ const LoginCheck = () => {
     if (res?.success === true) {
       localStorage.setItem('login', 'false');
       setIsLoggedIn(false);
+      window.location.href = '/'
     } else {
       console.error("Logout failed");
     }

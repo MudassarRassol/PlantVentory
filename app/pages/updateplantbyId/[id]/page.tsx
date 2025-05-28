@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Select,
   SelectTrigger,
@@ -11,22 +11,65 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CreatePlant } from "@/app/actions/createplant";
+import { getPlantById } from "@/app/actions/getplant.action";
+import { EditPlant } from "@/app/actions/getplant.action";
 import { Loader2 } from "lucide-react";
 import { UploadImage } from "@/lib/uploadimg";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
-const AddPlantPage=() => {
+interface EditPlantPageProps {
+  params: {
+    id: string;
+  };
+}
+
+const EditPlantPage = ({ params }: EditPlantPageProps) => {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [stock, setStock] = useState("");
   const [category, setCategory] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchPlantData = async () => {
+      try {
+        const id = params.id;
+        const response = await getPlantById(id);
+        if (response?.plant) {
+          const plant = response.plant;
+          setName(plant.name);
+          setDescription(plant.description || "");
+          setPrice(plant.price.toString());
+          setStock(plant.stock.toString());
+          setCategory(plant.category);
+          setOriginalImageUrl(plant.imageUrl);
+          if (plant.imageUrl) {
+            setPreview(plant.imageUrl);
+          }
+        } else {
+          setError("Plant not found");
+          toast.error("Plant not found");
+          router.push("/admin/plants");
+        }
+      } catch (err) {
+        setError("Failed to load plant data");
+        console.error("Error fetching plant:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPlantData();
+  }, [params.id, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -66,55 +109,51 @@ const AddPlantPage=() => {
     setIsSubmitting(true);
 
     try {
-      if (!image) {
-        throw new Error("Please upload an image");
-      }
-
       const formData = new FormData();
+      formData.append("id", params.id);
       formData.append("name", name);
       formData.append("description", description);
       formData.append("price", price);
-      formData.append("quantity", quantity);
+      formData.append("stock", stock);
       formData.append("category", category);
 
- 
+      // Only append image if a new one was uploaded
+      if (image) {
+        formData.append("image", image);
+      } else if (originalImageUrl) {
+        formData.append("originalImageUrl", originalImageUrl);
+      }
 
-      formData.append("imageUrl", image);
-
-     
-
-      const response = await CreatePlant(formData);
+      const response = await EditPlant(formData);
 
       if (!response.success) {
-        throw new Error(response.message || "Failed to add plant");
+        throw new Error(response.message || "Failed to update plant");
       }
 
-      // Reset form on success
-      setName("");
-      setDescription("");
-      setPrice("");
-      setQuantity("");
-      setCategory("");
-      setImage(null);
-      setPreview(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-
-      toast.success("Plant added successfully!");
+      toast.success("Plant updated successfully!");
+      router.back();
     } catch (err) {
       console.error("Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to add plant File Size me Be shorter then 1 Mb");
+      setError(err instanceof Error ? err.message : "Failed to update plant");
+      toast.error(err instanceof Error ? err.message : "Failed to update plant");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-[90vh] flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-green-500" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[90vh] flex items-center justify-center p-4">
       <div className="w-full max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 py-6 text-center text-green-500">
-          Add New Plant
+          Edit Plant
         </h1>
 
         <form
@@ -160,7 +199,6 @@ const AddPlantPage=() => {
                 className="hidden"
                 id="image-upload"
                 ref={fileInputRef}
-                required
               />
             </div>
             <Button
@@ -177,6 +215,11 @@ const AddPlantPage=() => {
             </Button>
             {error && !preview && (
               <p className="mt-2 text-sm text-red-500">{error}</p>
+            )}
+            {originalImageUrl && !image && (
+              <p className="mt-2 text-sm text-gray-500">
+                Current image will be kept if no new image is uploaded
+              </p>
             )}
           </div>
 
@@ -236,14 +279,14 @@ const AddPlantPage=() => {
               </div>
 
               <div>
-                <Label htmlFor="quantity" className="mb-2">
-                  Quantity
+                <Label htmlFor="stock" className="mb-2">
+                  Stock
                 </Label>
                 <Input
-                  id="quantity"
+                  id="stock"
                   type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
                   placeholder="0"
                   min="0"
                   required
@@ -285,20 +328,30 @@ const AddPlantPage=() => {
               </Select>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-green-500 hover:bg-green-600"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding Plant...
-                </>
-              ) : (
-                "Add Plant"
-              )}
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                type="submit"
+                className="flex-1 bg-green-500 hover:bg-green-600"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Plant"
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </form>
       </div>
@@ -306,4 +359,4 @@ const AddPlantPage=() => {
   );
 };
 
-export default AddPlantPage;
+export default EditPlantPage;

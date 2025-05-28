@@ -22,6 +22,8 @@ const Inventerytabel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const role = localStorage.getItem('role')
+
   useEffect(() => {
     const fetchPlants = async () => {
       try {
@@ -126,14 +128,17 @@ const Inventerytabel = () => {
             </SelectContent>
           </Select>
         </div>
-
+        {
+          role === 'seller' ?
+          
         <Link href="/pages/AddPlant">
           <Button
             className="bg-green-500 text-white hover:bg-green-600 mt-2 sm:mt-0"
           >
             Add New Plant
-          </Button>
-        </Link>
+          </Button> 
+        </Link> :  ''
+        }
       </div>
 
       <div className="w-full max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-8 p-2">

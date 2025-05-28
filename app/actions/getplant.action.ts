@@ -1,5 +1,8 @@
 "use server";
 
+
+
+
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "./user.action";
 import { Prisma } from "@prisma/client";
@@ -69,6 +72,8 @@ export async function CreatePlant(data: FormData) {
       return { success: false, message: "User not found." };
     }
 
+    const img = data.get('imageUrl') as File;
+    const imageUrl = await UploadImage(img, 'plants');
 
 
     // Create the plant with the uploaded image URL
@@ -79,7 +84,7 @@ export async function CreatePlant(data: FormData) {
         price: parseFloat(data.get('price') as string),
         stock: parseInt(data.get('quantity') as string),
         category: data.get('category') as string,
-        imageUrl: data.get('imageUrl') as string ,
+        imageUrl: imageUrl as string,
         userId: typeof userId === "string" ? userId : userId.id,
       },
     });
@@ -90,40 +95,57 @@ export async function CreatePlant(data: FormData) {
     throw new Error("Failed to create plant");
   }
 }
-export async function EditPlant(id: string, data: Prisma.PlantUpdateInput) {
+export async function EditPlant(data: FormData) {
   try {
-    const userId = await getCurrentUser();
+    console.log("Data received in EditPlant:", data);
 
+    const userId = await getCurrentUser();
     if (!userId) {
       return { success: false, message: "User not found." };
     }
 
+    const id = data.get('id') as string;
     const existingPlant = await prisma.plant.findUnique({
-      where: { id: id },
+      where: { id },
     });
+
     if (!existingPlant) {
       return { success: false, message: "Plant not found." };
     }
 
-    if (userId !== (existingPlant.userId as any)?.id) {
+    // Check if user owns the plant
+    if ((typeof userId === "string" ? userId : userId.id) !== existingPlant.userId) {
       return {
         success: false,
         message: "You do not have permission to edit this plant.",
       };
     }
 
-    const { user, ...plantData } = data;
+    let imageUrl = existingPlant.imageUrl;
+    const newImage = data.get('image') as File;
 
+    // Only upload new image if one was provided
+    if (newImage && newImage.size > 0) {
+      imageUrl = await UploadImage(newImage, 'plants') as string;
+    } else if (data.get('originalImageUrl')) {
+      // Keep the original image if no new image was uploaded
+      imageUrl = data.get('originalImageUrl') as string;
+    }
+
+    // Update the plant with the new data
     const updatedPlant = await prisma.plant.update({
-      where: {
-        id: id,
-      },
+      where: { id },
       data: {
-        ...plantData,
+        name: data.get('name') as string,
+        description: data.get('description') as string,
+        price: parseFloat(data.get('price') as string),
+        stock: parseInt(data.get('stock') as string),
+        category: data.get('category') as string,
+        imageUrl,
         userId: typeof userId === "string" ? userId : userId.id,
       },
     });
-    revalidatePath("/plants");
+
     return { success: true, updatedPlant };
   } catch (error) {
     console.error("Error updating plant:", error);
